@@ -2,11 +2,14 @@ package de.mklinger.tomcat.juli.logging;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.apache.juli.logging.Log;
+import org.apache.juli.logging.LogConfigurationException;
+import org.apache.juli.logging.LogFactory;
 import org.junit.Assert;
 import org.junit.Test;
 import org.objectweb.asm.ClassReader;
@@ -25,12 +28,19 @@ public class ApiTest {
 		try (ZipInputStream zin = new ZipInputStream(getClass().getClassLoader().getResourceAsStream("tomcat-juli.jar"))) {
 			ZipEntry entry;
 			while ((entry = zin.getNextEntry()) != null) {
-				if ("org/apache/juli/logging/Log.class".equals(entry.getName())) {
-					Class<?> logClass = Log.class;
-					check(zin, logClass);
+				if (getResourceName(Log.class).equals(entry.getName())) {
+					check(zin, Log.class);
+				} else if (getResourceName(LogConfigurationException.class).equals(entry.getName())) {
+					check(zin, LogConfigurationException.class);
+				} else if (getResourceName(LogFactory.class).equals(entry.getName())) {
+					check(zin, LogFactory.class);
 				}
 			}
 		}
+	}
+
+	private static String getResourceName(Class<?> clazz) {
+		return clazz.getName().replace('.', '/') + ".class";
 	}
 
 	private void check(InputStream tomcatClassIn, Class<?> localClass) throws IOException {
@@ -38,30 +48,58 @@ public class ApiTest {
 		classReader.accept(new ClassVisitor(Opcodes.ASM5) {
 			@Override
 			public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-				// TODO check visible fields
+				if ((Opcodes.ACC_PRIVATE & access) != 0) {
+					return null;
+				}
+
+				Class<?> type = findLocalClass(Type.getType(desc));
+
+				try {
+					Field field = localClass.getDeclaredField(name);
+					Assert.assertEquals("Field in local class has wrong type", type, field.getType());
+
+					// TODO check same visibility and other modifiers (static)
+
+				} catch (NoSuchFieldException | SecurityException e) {
+					// not found
+					Assert.fail("Field not found in local class " + localClass + ": " + name + " " + desc);
+				}
+
 				return null;
 			}
 
 			@Override
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-				// TODO only if visible
+				if ("<clinit>".equals(name)) {
+					// ignore static blocks
+					return null;
+				}
+				if ((Opcodes.ACC_PRIVATE & access) != 0) {
+					return null;
+				}
+
 				Class<?>[] parameterTypes = getParameterTypes(desc);
 				Class<?> returnType = getReturnType(desc);
 				try {
-					Method method = localClass.getDeclaredMethod(name, parameterTypes);
-					// found.
-					Assert.assertEquals("Method in local class has wrong return type", returnType, method.getReturnType());
+					if ("<init>".equals(name)) {
+						localClass.getDeclaredConstructor(parameterTypes);
+						// TODO check same visibility and other modifiers (static)
+					} else {
+						Method method = localClass.getDeclaredMethod(name, parameterTypes);
+						Assert.assertEquals("Method in local class has wrong return type", returnType, method.getReturnType());
+						// TODO check same visibility and other modifiers (static)
+					}
 				} catch (NoSuchMethodException | SecurityException e) {
 					// not found
 					Assert.fail("Method not found in local class " + localClass + ": " + name + " " + desc);
 				}
 				return null;
 			}
-
-			private Class<?> getReturnType(String desc) {
-				return findLocalClass(Type.getReturnType(desc));
-			}
 		}, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+	}
+
+	private static Class<?> getReturnType(String desc) {
+		return findLocalClass(Type.getReturnType(desc));
 	}
 
 	private static Class<?>[] getParameterTypes(String desc) {
@@ -86,9 +124,31 @@ public class ApiTest {
 		if ("int".equals(type.getClassName())) {
 			return Integer.TYPE;
 		}
-		// TODO other primitives
+		if ("short".equals(type.getClassName())) {
+			return Short.TYPE;
+		}
+		if ("char".equals(type.getClassName())) {
+			return Character.TYPE;
+		}
+		if ("byte".equals(type.getClassName())) {
+			return Byte.TYPE;
+		}
+		if ("flloat".equals(type.getClassName())) {
+			return Byte.TYPE;
+		}
+		if ("double".equals(type.getClassName())) {
+			return Byte.TYPE;
+		}
+
+		String name;
+		if (type.getSort() == Type.ARRAY) {
+			name = type.getDescriptor().replace('/', '.');
+		} else {
+			name = type.getClassName();
+		}
+
 		try {
-			return Class.forName(type.getClassName());
+			return Class.forName(name);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException("Type referenced by tomcat class not found: " + type.getClassName(), e);
 		}
