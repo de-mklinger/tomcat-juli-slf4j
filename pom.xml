@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>de.mklinger.tomcat</groupId>
+	<artifactId>tomcat-juli-slf4j</artifactId>
+	<version>7.0.69-SNAPSHOT</version>
+
+	<name>${project.artifactId}</name>
+	<description>Replacement for Tomcat's tomcat-juli.jar logging to SLF4J</description>
+	<url>https://github.com/de-mklinger/tomcat-juli-slf4j</url>
+	<inceptionYear>2017</inceptionYear>
+
+	<organization>
+		<name>mklinger GmbH</name>
+		<url>http://www.mklinger.de</url>
+	</organization>
+
+	<licenses>
+		<license>
+			<name>Apache License 2.0</name>
+			<url>https://www.apache.org/licenses/LICENSE-2.0</url>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<name>Marc Klinger</name>
+			<email>mklinger[at]mklinger[dot]de</email>
+			<organization>mklinger GmbH</organization>
+			<organizationUrl>http://www.mklinger.de</organizationUrl>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:git@github.com:de-mklinger/tomcat-juli-slf4j.git</connection>
+		<developerConnection>scm:git:git@github.com:de-mklinger/tomcat-juli-slf4j.git</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/de-mklinger/tomcat-juli-slf4j</url>
+	</scm>
+
+	<properties>
+		<tomcat.version>7.0.69</tomcat.version>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.22</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.ow2.asm</groupId>
+			<artifactId>asm</artifactId>
+			<version>5.2</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>3.0.0</version>
+				<executions>
+					<execution>
+						<id>copy-test-jars</id>
+						<goals>
+							<goal>copy</goal>
+						</goals>
+						<phase>generate-test-resources</phase>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>org.apache.tomcat</groupId>
+									<artifactId>tomcat-juli</artifactId>
+									<version>${tomcat.version}</version>
+								</artifactItem>
+							</artifactItems>
+							<outputDirectory>${basedir}/target/test-jars</outputDirectory>
+							<stripVersion>true</stripVersion>
+							<excludeTransitive>true</excludeTransitive>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>1.12</version>
+				<executions>
+					<execution>
+						<id>add-test-resource</id>
+						<phase>generate-test-resources</phase>
+						<goals>
+							<goal>add-test-resource</goal>
+						</goals>
+						<configuration>
+							<resources>
+								<resource>
+									<directory>${basedir}/target/test-jars</directory>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
