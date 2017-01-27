@@ -40,16 +40,18 @@
 
 	<properties>
 		<tomcat.version>7.0.69</tomcat.version>
+		<slf4j.version>1.7.22</slf4j.version>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.22</version>
+			<version>${slf4j.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -64,9 +66,48 @@
 			<version>5.2</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>de.mklinger.commons</groupId>
+			<artifactId>exec</artifactId>
+			<version>0.26</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>${slf4j.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>		
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-juli</artifactId>
+			<version>${tomcat.version}</version>
+			<scope>runtime</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-antrun-plugin</artifactId>
+					<version>1.7</version>
+					<dependencies>
+						<dependency>
+							<groupId>org.apache.ant</groupId>
+							<artifactId>ant</artifactId>
+							<version>1.9.3</version>
+						</dependency>
+						<dependency>
+							<groupId>ant-contrib</groupId>
+							<artifactId>ant-contrib</artifactId>
+							<version>1.0b3</version>
+						</dependency>
+					</dependencies>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -76,18 +117,58 @@
 					<execution>
 						<id>copy-test-jars</id>
 						<goals>
-							<goal>copy</goal>
+							<goal>copy-dependencies</goal>
 						</goals>
 						<phase>generate-test-resources</phase>
+						<configuration>
+							<includeArtifactIds>tomcat-juli</includeArtifactIds>
+							<outputDirectory>${basedir}/target/test-jars</outputDirectory>
+							<stripVersion>true</stripVersion>
+							<excludeTransitive>true</excludeTransitive>
+						</configuration>
+					</execution>
+					<execution>
+						<id>itest-unpack-tomcat</id>
+						<goals>
+							<goal>unpack</goal>
+						</goals>
+						<phase>pre-integration-test</phase>
 						<configuration>
 							<artifactItems>
 								<artifactItem>
 									<groupId>org.apache.tomcat</groupId>
-									<artifactId>tomcat-juli</artifactId>
+									<artifactId>tomcat</artifactId>
 									<version>${tomcat.version}</version>
+									<type>zip</type>
 								</artifactItem>
 							</artifactItems>
-							<outputDirectory>${basedir}/target/test-jars</outputDirectory>
+							<outputDirectory>${basedir}/target/itest</outputDirectory>
+							<stripVersion>true</stripVersion>
+							<excludeTransitive>true</excludeTransitive>
+						</configuration>
+					</execution>
+					<execution>
+						<id>itest-copy-libs</id>
+						<goals>
+							<goal>copy</goal>
+						</goals>
+						<phase>pre-integration-test</phase>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>org.slf4j</groupId>
+									<artifactId>slf4j-api</artifactId>
+									<version>${slf4j.version}</version>
+									<type>jar</type>
+								</artifactItem>
+								<artifactItem>
+									<groupId>org.slf4j</groupId>
+									<artifactId>slf4j-simple</artifactId>
+									<version>${slf4j.version}</version>
+									<type>jar</type>
+								</artifactItem>
+							</artifactItems>
+							<outputDirectory>${basedir}/target/itest/apache-tomcat-${tomcat.version}/bin</outputDirectory>
 							<stripVersion>true</stripVersion>
 							<excludeTransitive>true</excludeTransitive>
 						</configuration>
@@ -115,6 +196,76 @@
 					</execution>
 				</executions>
 			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>2.4.3</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<filters>
+								<filter>
+									<artifact>org.apache.tomcat:tomcat-juli</artifact>
+									<excludes>
+										<exclude>org/apache/juli/logging/Log.class</exclude>
+										<exclude>org/apache/juli/logging/LogConfigurationException.class</exclude>
+										<exclude>org/apache/juli/logging/LogFactory.class</exclude>
+									</excludes>
+									<includes>
+										<include>**</include>
+									</includes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>prepare-tomcat</id>
+						<phase>pre-integration-test</phase>
+						<configuration>
+							<target>
+								<copy 
+									file="${basedir}/target/${project.build.finalName}.jar"
+									tofile="${basedir}/target/itest/apache-tomcat-${tomcat.version}/bin/tomcat-juli.jar"/>
+									
+								<echo file="${basedir}/target/itest/apache-tomcat-${tomcat.version}/bin/setenv.sh">CLASSPATH=$CLASSPATH:$CATALINA_HOME/bin/slf4j-api.jar:$CATALINA_HOME/bin/slf4j-simple.jar</echo>
+								<chmod dir="${basedir}/target/itest/apache-tomcat-${tomcat.version}/bin" includes="*.sh" perm="+x"/>
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>2.18.1</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>integration-test</goal>
+						</goals>
+						<configuration>
+							<systemPropertyVariables>
+								<catalina.home>${basedir}/target/itest/apache-tomcat-${tomcat.version}</catalina.home>
+							</systemPropertyVariables>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
 		</plugins>
 	</build>
 </project>
