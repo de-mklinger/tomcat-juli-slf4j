@@ -38,6 +38,17 @@
 		<url>https://github.com/de-mklinger/tomcat-juli-slf4j</url>
 	</scm>
 
+	<distributionManagement>
+		<repository>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
+		<snapshotRepository>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
+
 	<properties>
 		<tomcat.version>7.0.69</tomcat.version>
 		<slf4j.version>1.7.22</slf4j.version>
@@ -225,7 +236,6 @@
 					</execution>
 				</executions>
 			</plugin>
-
 			<plugin>
 				<artifactId>maven-antrun-plugin</artifactId>
 				<executions>
@@ -265,7 +275,69 @@
 					</execution>
 				</executions>
 			</plugin>
-
 		</plugins>
 	</build>
+	
+	<profiles>
+		<profile>
+			<!-- ossrh release -->
+			<id>release</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar-no-fork</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-javadocs</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.6</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+								<phase>verify</phase>
+								<configuration>
+									<keyname>2710564F</keyname>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.sonatype.plugins</groupId>
+						<artifactId>nexus-staging-maven-plugin</artifactId>
+						<version>1.6.3</version>
+						<extensions>true</extensions>
+						<configuration>
+							<serverId>ossrh</serverId>
+							<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+							<autoReleaseAfterClose>true</autoReleaseAfterClose>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>	
 </project>
