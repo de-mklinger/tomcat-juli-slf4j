@@ -34,7 +34,7 @@
 	<scm>
 		<connection>scm:git:git@github.com:de-mklinger/tomcat-juli-slf4j.git</connection>
 		<developerConnection>scm:git:git@github.com:de-mklinger/tomcat-juli-slf4j.git</developerConnection>
-		<tag>HEAD</tag>
+		<tag>tomcat-juli-slf4j-8.0.41</tag>
 		<url>https://github.com/de-mklinger/tomcat-juli-slf4j</url>
 	</scm>
 
