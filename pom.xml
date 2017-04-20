@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.mklinger.tomcat</groupId>
 	<artifactId>tomcat-juli-slf4j</artifactId>
-	<version>7.0.77-SNAPSHOT</version>
+	<version>7.0.76-SNAPSHOT</version>
 
 	<name>${project.artifactId}</name>
 	<description>Replacement for Tomcat's tomcat-juli.jar logging to SLF4J</description>
@@ -34,7 +34,6 @@
 	<scm>
 		<connection>scm:git:git@github.com:de-mklinger/tomcat-juli-slf4j.git</connection>
 		<developerConnection>scm:git:git@github.com:de-mklinger/tomcat-juli-slf4j.git</developerConnection>
-		<tag>tomcat-juli-slf4j-7.0.69</tag>
 		<url>https://github.com/de-mklinger/tomcat-juli-slf4j</url>
 	</scm>
 
@@ -50,7 +49,7 @@
 	</distributionManagement>
 
 	<properties>
-		<tomcat.version>7.0.77</tomcat.version>
+		<tomcat.version>7.0.76</tomcat.version>
 		<slf4j.version>1.7.22</slf4j.version>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
