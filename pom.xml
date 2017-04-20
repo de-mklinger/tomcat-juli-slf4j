@@ -35,8 +35,8 @@
 		<connection>scm:git:git@github.com:de-mklinger/tomcat-juli-slf4j.git</connection>
 		<developerConnection>scm:git:git@github.com:de-mklinger/tomcat-juli-slf4j.git</developerConnection>
 		<url>https://github.com/de-mklinger/tomcat-juli-slf4j</url>
-	  <tag>HEAD</tag>
-  </scm>
+		<tag>HEAD</tag>
+	</scm>
 
 	<distributionManagement>
 		<repository>
@@ -50,7 +50,7 @@
 	</distributionManagement>
 
 	<properties>
-		<tomcat.version>7.0.76</tomcat.version>
+		<tomcat.version>7.0.77</tomcat.version>
 		<slf4j.version>1.7.22</slf4j.version>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
