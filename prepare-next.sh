@@ -7,10 +7,10 @@ set -eu
 #  exit 1
 #fi
 
-#if ! git diff-files --quiet; then
-#  echo "Have working tree changes"
-#  exit 1
-#fi
+if ! git diff-files --quiet; then
+  echo "Have working tree changes"
+  exit 1
+fi
 
 git pull
 
