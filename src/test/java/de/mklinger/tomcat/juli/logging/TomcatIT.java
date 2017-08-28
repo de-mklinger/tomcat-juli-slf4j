@@ -19,6 +19,8 @@ import org.junit.Test;
 import de.mklinger.commons.exec.Cmd;
 import de.mklinger.commons.exec.CmdBuilder;
 import de.mklinger.commons.exec.CommandLineException;
+import de.mklinger.commons.exec.CommandLineUtil;
+import de.mklinger.commons.exec.JavaHome;
 
 /**
  * @author Marc Klinger - mklinger[at]mklinger[dot]de - klingerm
@@ -26,16 +28,16 @@ import de.mklinger.commons.exec.CommandLineException;
 public class TomcatIT {
 	@Test
 	public void test() throws IOException, CommandLineException {
-		File catalinaHome = getCatalinaHome();
+		final File catalinaHome = getCatalinaHome();
 		checkCatalinaHome(catalinaHome);
 
-		int controlPort = getFreePort();
-		int httpPort = getFreePort();
-		int ajpPort = getFreePort();
+		final int controlPort = getFreePort();
+		final int httpPort = getFreePort();
+		final int ajpPort = getFreePort();
 
-		File confDir = new File(catalinaHome, "conf");
-		File serverXml = new File(confDir, "server.xml");
-		Path bak = Files.createTempFile("server", ".xml");
+		final File confDir = new File(catalinaHome, "conf");
+		final File serverXml = new File(confDir, "server.xml");
+		final Path bak = Files.createTempFile("server", ".xml");
 		Files.copy(serverXml.toPath(), bak, StandardCopyOption.REPLACE_EXISTING);
 		try {
 			Files.write(serverXml.toPath(),
@@ -45,18 +47,31 @@ public class TomcatIT {
 					.map(line -> line.replace("8009", String.valueOf(ajpPort)))
 					.collect(Collectors.toList()));
 
-			ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+			final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
-			Pattern p = Pattern.compile(Pattern.quote("[main] INFO org.apache.catalina.startup.Catalina - Server startup in ") + "\\d+" + Pattern.quote(" ms"));
-			File binDir = new File(catalinaHome, "bin");
-			Cmd cmd = new CmdBuilder(new File(binDir, "catalina.sh"))
+			final Pattern p = Pattern.compile(Pattern.quote("[main] INFO org.apache.catalina.startup.Catalina - Server startup in ") + "\\d+" + Pattern.quote(" ms"));
+			final File binDir = new File(catalinaHome, "bin");
+			final String executableName;
+			if (CommandLineUtil.isWindows()) {
+				executableName = "catalina.bat";
+			} else {
+				executableName = "catalina.sh";
+			}
+			final File executable = new File(binDir, executableName);
+			final Cmd cmd = new CmdBuilder(executable)
 					.arg("run")
-					.stderr(stderr)
+					.environment("CATALINA_HOME", catalinaHome.getAbsolutePath())
+					.environment("JAVA_HOME", JavaHome.getByRuntime().getJavaHome().getAbsolutePath())
+					.redirectErrorStream(true)
+					.stdout(stderr)
 					.destroyForcibly(true)
 					.destroyOnError(true)
 					.ping(() -> {
-						Matcher m = p.matcher(stderr.toString());
+						final Matcher m = p.matcher(stderr.toString());
 						if (m.find()) {
+							if (CommandLineUtil.isWindows()) {
+								stopTomcat(catalinaHome, executable);
+							}
 							throw new TestSuccessException();
 						}
 					})
@@ -65,8 +80,9 @@ public class TomcatIT {
 
 			try {
 				cmd.execute();
-			} catch (CommandLineException e) {
-				Throwable cause = e.getCause();
+				throw new CommandLineException("Execute returned without matching log");
+			} catch (final CommandLineException e) {
+				final Throwable cause = e.getCause();
 				if (cause == null || !(cause instanceof TestSuccessException)) {
 					System.err.println("Tomcat stderr:\n" + stderr.toString());
 					throw e;
@@ -77,6 +93,19 @@ public class TomcatIT {
 
 		} finally {
 			Files.move(bak, serverXml.toPath(), StandardCopyOption.REPLACE_EXISTING);
+		}
+	}
+
+	private void stopTomcat(final File catalinaHome, final File executable) {
+		try {
+			new CmdBuilder(executable)
+			.arg("stop")
+			.environment("CATALINA_HOME", catalinaHome.getAbsolutePath())
+			.environment("JAVA_HOME", JavaHome.getByRuntime().getJavaHome().getAbsolutePath())
+			.toCmd()
+			.execute();
+		} catch (final CommandLineException e) {
+			throw new RuntimeException("Stop failed");
 		}
 	}
 
@@ -91,7 +120,7 @@ public class TomcatIT {
 		private static final long serialVersionUID = 1L;
 	}
 
-	private void checkCatalinaHome(File catalinaHome) {
+	private void checkCatalinaHome(final File catalinaHome) {
 		if (!new File(catalinaHome, "bin").isDirectory()) {
 			throw new IllegalStateException("Invalid catalina home: " + catalinaHome);
 		}
@@ -104,15 +133,15 @@ public class TomcatIT {
 	}
 
 	private File getCatalinaHome() throws FileNotFoundException {
-		String catalinaHomeProp = System.getProperty("catalina.home");
+		final String catalinaHomeProp = System.getProperty("catalina.home");
 		if (catalinaHomeProp != null && !catalinaHomeProp.isEmpty()) {
 			return new File(catalinaHomeProp);
 		} else {
-			File itestDir = new File("target/itest");
+			final File itestDir = new File("target/itest");
 			if (!itestDir.isDirectory()) {
 				throw new FileNotFoundException("ITest directory not found");
 			}
-			File[] files = itestDir.listFiles();
+			final File[] files = itestDir.listFiles();
 			if (files == null || files.length != 1) {
 				throw new FileNotFoundException("ITest directory not found");
 			}
