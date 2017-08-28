@@ -270,6 +270,8 @@
 								<copy file="${basedir}/target/${project.build.finalName}.jar" tofile="${basedir}/target/itest/apache-tomcat-${tomcat.version}/bin/tomcat-juli.jar" />
 									
 								<echo file="${basedir}/target/itest/apache-tomcat-${tomcat.version}/bin/setenv.sh">CLASSPATH=$CLASSPATH:$CATALINA_HOME/bin/slf4j-api.jar:$CATALINA_HOME/bin/slf4j-simple.jar</echo>
+								<echo file="${basedir}/target/itest/apache-tomcat-${tomcat.version}/bin/setenv.bat">set "CLASSPATH=%CLASSPATH%;%CATALINA_HOME%\bin\slf4j-api.jar;%CATALINA_HOME%\bin\slf4j-simple.jar"</echo>
+								
 								<chmod dir="${basedir}/target/itest/apache-tomcat-${tomcat.version}/bin" includes="*.sh" perm="+x" />
 							</target>
 						</configuration>
