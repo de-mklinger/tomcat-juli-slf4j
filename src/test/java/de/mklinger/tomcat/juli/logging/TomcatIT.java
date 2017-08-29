@@ -58,10 +58,8 @@ public class TomcatIT {
 				executableName = "catalina.sh";
 			}
 			final File executable = new File(binDir, executableName);
-			final Cmd cmd = new CmdBuilder(executable)
+			final CmdBuilder cmdb = new CmdBuilder(executable)
 					.arg("run")
-					.environment("CATALINA_HOME", catalinaHome.getAbsolutePath())
-					.environment("JAVA_HOME", JavaHome.getByRuntime().getJavaHome().getAbsolutePath())
 					.redirectErrorStream(true)
 					.stdout(stderr)
 					.destroyForcibly(true)
@@ -75,9 +73,15 @@ public class TomcatIT {
 							throw new TestSuccessException();
 						}
 					})
-					.timeout(10, TimeUnit.SECONDS)
-					.toCmd();
+					.timeout(10, TimeUnit.SECONDS);
 
+			if (CommandLineUtil.isWindows()) {
+				cmdb
+				.environment("CATALINA_HOME", catalinaHome.getAbsolutePath())
+				.environment("JAVA_HOME", JavaHome.getByRuntime().getJavaHome().getAbsolutePath());
+			}
+
+			final Cmd cmd = cmdb.toCmd();
 			try {
 				cmd.execute();
 				throw new CommandLineException("Execute returned without matching log");
