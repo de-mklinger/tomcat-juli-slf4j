@@ -10,6 +10,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -19,6 +22,7 @@ import org.junit.Test;
 
 import de.mklinger.commons.exec.Cmd;
 import de.mklinger.commons.exec.CmdBuilder;
+import de.mklinger.commons.exec.CmdSettings;
 import de.mklinger.commons.exec.CommandLineException;
 import de.mklinger.commons.exec.CommandLineUtil;
 import de.mklinger.commons.exec.JavaHome;
@@ -36,7 +40,7 @@ public class TomcatIT {
 		final int httpPort = getFreePort();
 		final int ajpPort = getFreePort();
 
-		System.out.println("Using ports:\n\tcontrol port: " + controlPort + "\n\thttp port: " + httpPort + "\n\tajp port: " + ajpPort);
+		//System.out.println("Using ports:\n\tcontrol port: " + controlPort + "\n\thttp port: " + httpPort + "\n\tajp port: " + ajpPort);
 
 		final File confDir = new File(catalinaHome, "conf");
 		final File serverXml = new File(confDir, "server.xml");
@@ -50,7 +54,7 @@ public class TomcatIT {
 					.map(line -> line.replace("8009", String.valueOf(ajpPort)))
 					.collect(Collectors.toList()));
 
-			System.out.println("server.xml:\n\n" + new String(Files.readAllBytes(serverXml.toPath()), "UTF-8") + "\n");
+			//System.out.println("server.xml:\n\n" + new String(Files.readAllBytes(serverXml.toPath()), "UTF-8") + "\n");
 
 			final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
@@ -63,38 +67,29 @@ public class TomcatIT {
 				executableName = "catalina.sh";
 			}
 			final File executable = new File(binDir, executableName);
-			final CmdBuilder cmdb;
-			if (CommandLineUtil.isWindows()) {
-				cmdb = new CmdBuilder(executable);
-			} else {
-				cmdb = new CmdBuilder("env")
-						.arg(executable.getAbsolutePath());
-			}
-			cmdb
-			.arg("run")
-			.directory(binDir)
-			.redirectErrorStream(true)
-			.stdout(stderr)
-			.destroyForcibly(true)
-			.destroyOnError(true)
-			.ping(() -> {
-				final Matcher m = p.matcher(stderr.toString());
-				if (m.find()) {
-					if (CommandLineUtil.isWindows()) {
-						stopTomcat(catalinaHome, executable);
-					}
-					throw new TestSuccessException();
-				}
-			})
-			.timeout(10, TimeUnit.SECONDS);
+			final CmdBuilder cmdb = new CmdBuilder(executable)
+					.arg("run")
+					.directory(binDir)
+					.redirectErrorStream(true)
+					.stdout(stderr)
+					.destroyForcibly(true)
+					.destroyOnError(true)
+					.ping(() -> {
+						final Matcher m = p.matcher(stderr.toString());
+						if (m.find()) {
+							if (CommandLineUtil.isWindows()) {
+								stopTomcat(catalinaHome, executable);
+							}
+							throw new TestSuccessException();
+						}
+					})
+					.timeout(10, TimeUnit.SECONDS);
 
-			if (CommandLineUtil.isWindows()) {
-				cmdb
-				.environment("CATALINA_HOME", catalinaHome.getAbsolutePath())
-				.environment("JAVA_HOME", JavaHome.getByRuntime().getJavaHome().getAbsolutePath());
-			}
+			final CmdSettings cmdSettings = cmdb.toCmdSettings();
+			setEnvironment(cmdSettings, catalinaHome);
+			cmdSettings.freeze();
 
-			final Cmd cmd = cmdb.toCmd();
+			final Cmd cmd = new Cmd(cmdSettings);
 			try {
 				cmd.execute();
 				throw new CommandLineException("Execute returned without matching log");
@@ -111,6 +106,23 @@ public class TomcatIT {
 		} finally {
 			Files.move(bak, serverXml.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		}
+	}
+
+	private void setEnvironment(final CmdSettings cmdSettings, final File catalinaHome) {
+		final Map<String, String> environment = new HashMap<>(System.getenv());
+
+		for (final Iterator<Map.Entry<String, String>> iterator = environment.entrySet().iterator(); iterator.hasNext();) {
+			final Map.Entry<String, String> e = iterator.next();
+			if (e.getKey().contains("CATALINA") || e.getKey().contains("TOMCAT") || e.getKey().contains("JAVA")) {
+				System.out.println("Removing from environment: " + e.getKey() + " -> " + e.getValue());
+				iterator.remove();
+			}
+		}
+
+		environment.put("CATALINA_HOME", catalinaHome.getAbsolutePath());
+		environment.put("JAVA_HOME", JavaHome.getByRuntime().getJavaHome().getAbsolutePath());
+
+		cmdSettings.setEnvironment(environment);
 	}
 
 	private void stopTomcat(final File catalinaHome, final File executable) {
