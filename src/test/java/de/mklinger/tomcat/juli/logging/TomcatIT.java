@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -34,6 +35,8 @@ public class TomcatIT {
 		final int controlPort = getFreePort();
 		final int httpPort = getFreePort();
 		final int ajpPort = getFreePort();
+
+		System.out.println("Using ports:\n\tcontrol port: " + controlPort + "\n\thttp port: " + httpPort + "\n\tajp port: " + ajpPort);
 
 		final File confDir = new File(catalinaHome, "conf");
 		final File serverXml = new File(confDir, "server.xml");
@@ -114,9 +117,13 @@ public class TomcatIT {
 	}
 
 	private static int getFreePort() throws IOException {
-		try (ServerSocket ss = new ServerSocket()) {
-			ss.bind(null);
-			return ss.getLocalPort();
+		while (true) {
+			try (ServerSocket ss = new ServerSocket()) {
+				ss.bind(new InetSocketAddress((int) Math.round(Math.random() * 15_000.0 + 50_000.0)));
+				return ss.getLocalPort();
+			} catch (final IOException e) {
+				// ignore
+			}
 		}
 	}
 
