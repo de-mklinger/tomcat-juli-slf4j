@@ -50,6 +50,8 @@ public class TomcatIT {
 					.map(line -> line.replace("8009", String.valueOf(ajpPort)))
 					.collect(Collectors.toList()));
 
+			System.out.println("server.xml:\n\n" + new String(Files.readAllBytes(serverXml.toPath()), "UTF-8") + "\n");
+
 			final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
 			final Pattern p = Pattern.compile(Pattern.quote("[main] INFO org.apache.catalina.startup.Catalina - Server startup in ") + "\\d+" + Pattern.quote(" ms"));
@@ -61,22 +63,30 @@ public class TomcatIT {
 				executableName = "catalina.sh";
 			}
 			final File executable = new File(binDir, executableName);
-			final CmdBuilder cmdb = new CmdBuilder(executable)
-					.arg("run")
-					.redirectErrorStream(true)
-					.stdout(stderr)
-					.destroyForcibly(true)
-					.destroyOnError(true)
-					.ping(() -> {
-						final Matcher m = p.matcher(stderr.toString());
-						if (m.find()) {
-							if (CommandLineUtil.isWindows()) {
-								stopTomcat(catalinaHome, executable);
-							}
-							throw new TestSuccessException();
-						}
-					})
-					.timeout(10, TimeUnit.SECONDS);
+			final CmdBuilder cmdb;
+			if (CommandLineUtil.isWindows()) {
+				cmdb = new CmdBuilder(executable);
+			} else {
+				cmdb = new CmdBuilder("env")
+						.arg(executable.getAbsolutePath());
+			}
+			cmdb
+			.arg("run")
+			.directory(binDir)
+			.redirectErrorStream(true)
+			.stdout(stderr)
+			.destroyForcibly(true)
+			.destroyOnError(true)
+			.ping(() -> {
+				final Matcher m = p.matcher(stderr.toString());
+				if (m.find()) {
+					if (CommandLineUtil.isWindows()) {
+						stopTomcat(catalinaHome, executable);
+					}
+					throw new TestSuccessException();
+				}
+			})
+			.timeout(10, TimeUnit.SECONDS);
 
 			if (CommandLineUtil.isWindows()) {
 				cmdb
