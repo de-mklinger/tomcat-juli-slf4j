@@ -1,16 +1,20 @@
 #!/bin/bash
 
-set -eu
+set -e
 
-#if ! git diff-index --quiet HEAD --; then
-#  echo "Have staged or working tree changes"
-#  exit 1
-#fi
+if [ "$1" != "-f" ]; then
+#  if ! git diff-index --quiet HEAD --; then
+#    echo "Have staged or working tree changes"
+#    exit 1
+#  fi
 
-if ! git diff-files --quiet; then
-  echo "Have working tree changes"
-  exit 1
+  if ! git diff-files --quiet; then
+    echo "Have working tree changes"
+    exit 1
+  fi
 fi
+
+set -u
 
 git pull
 
