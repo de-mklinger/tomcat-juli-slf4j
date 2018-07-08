@@ -4,12 +4,12 @@ set -e
 
 if [ "$1" != "-f" ]; then
 #  if ! git diff-index --quiet HEAD --; then
-#    echo "Have staged or working tree changes"
+#    echo "Have staged or working tree changes. Exiting."
 #    exit 1
 #  fi
 
   if ! git diff-files --quiet; then
-    echo "Have working tree changes"
+    echo "Have working tree changes. Exiting."
     exit 1
   fi
 fi
@@ -18,24 +18,30 @@ set -u
 
 git pull
 
-NEXT_VERSION=`sed -n "s/^.*<version>\(.*\)-SNAPSHOT.*$/\1/p" pom.xml`
 TOMCAT_VERSION=`sed -n "s/^.*<tomcat.version>\(.*\)<\/.*$/\1/p" pom.xml | head -n 1`
 
-ARRV=(${TOMCAT_VERSION//./ })
-MAJOR=${ARRV[0]}
-MINOR=${ARRV[1]}
-PATCH=${ARRV[2]}
+if [ "$NEXT_VERSION" = "" ]; then
+  NEXT_VERSION=`sed -n "s/^.*<version>\(.*\)-SNAPSHOT.*$/\1/p" pom.xml`
 
-let PATCHINC=PATCH+1
-EXPECTED_NEXT_VERSION=$MAJOR.$MINOR.$PATCHINC
+  ARRV=(${TOMCAT_VERSION//./ })
+  MAJOR=${ARRV[0]}
+  MINOR=${ARRV[1]}
+  PATCH=${ARRV[2]}
 
-echo "Next version: $NEXT_VERSION"
-echo "Expected next version: $EXPECTED_NEXT_VERSION"
+  let PATCHINC=PATCH+1
+  EXPECTED_NEXT_VERSION=$MAJOR.$MINOR.$PATCHINC
 
-if [ "$NEXT_VERSION" != "$EXPECTED_NEXT_VERSION" ]; then
-  echo "Error (1)"
-  exit 1
+  echo "Next version: $NEXT_VERSION"
+
+  if [ "$NEXT_VERSION" != "$EXPECTED_NEXT_VERSION" ]; then
+    echo "Expected next version: $EXPECTED_NEXT_VERSION"
+    echo "Error (1)"
+    exit 1
+  fi
+else 
+  echo "Next version: $NEXT_VERSION"
 fi
+
 
 sed -i -e "s/<tomcat.version>$TOMCAT_VERSION<\/tomcat.version>/<tomcat.version>$NEXT_VERSION<\/tomcat.version>/g" pom.xml
 
