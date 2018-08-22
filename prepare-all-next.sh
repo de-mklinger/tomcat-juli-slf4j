@@ -35,7 +35,7 @@ while read BRANCH; do
 	echo
     else
 	set -e
-        LINE=`grep "Later version available" <<< $OUT`
+        LINE=`grep "Later version available" <<< "$OUT"`
 	if [ "$LINE" = "" ]; then
             echo "X Error for $BRANCH";
 	    cat <<< $OUT
@@ -44,7 +44,7 @@ while read BRANCH; do
 	else
             echo "# Failed for $BRANCH";
 	    echo -n "  "
-	    cat <<< $LINE
+	    cat <<< "$LINE"
 	    echo
 	    FAILED_BRANCHES="$FAILED_BRANCHES $BRANCH"
 	    # TODO
@@ -53,7 +53,7 @@ while read BRANCH; do
 	    BRANCH_NEXT_VERSIONS[${BRANCH}]=$VERSION
 	fi
     fi
-done <<< $ALL_BRANCHES
+done <<< "$ALL_BRANCHES"
 
 echo
 
