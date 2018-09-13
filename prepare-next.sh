@@ -20,7 +20,7 @@ git pull
 
 TOMCAT_VERSION=`sed -n "s/^.*<tomcat.version>\(.*\)<\/.*$/\1/p" pom.xml | head -n 1`
 
-if [ "$NEXT_VERSION" = "" ]; then
+if [ -z ${NEXT_VERSION+x} ]; then
   NEXT_VERSION=`sed -n "s/^.*<version>\(.*\)-SNAPSHOT.*$/\1/p" pom.xml`
 
   ARRV=(${TOMCAT_VERSION//./ })
