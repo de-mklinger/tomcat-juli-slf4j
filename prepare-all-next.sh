@@ -50,6 +50,8 @@ while read BRANCH; do
 	    # TODO
 	    VERSION=$(sed 's/Later version available: \(.*\)/\1/' <<< $LINE)
 	    ##'## fix for mc editor, sorry.
+	    # Remove whitespace:
+	    VERSION="$(echo -e "${VERSION}" | tr -d '[:space:]')"
 	    BRANCH_NEXT_VERSIONS[${BRANCH}]=$VERSION
 	fi
     fi
