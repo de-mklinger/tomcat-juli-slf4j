@@ -58,7 +58,7 @@ public class TomcatIT {
 
 			final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
-			final Pattern p = Pattern.compile(Pattern.quote("[main] INFO org.apache.catalina.startup.Catalina - Server startup in ") + "\\d+" + Pattern.quote(" ms"));
+			final Pattern p = Pattern.compile(Pattern.quote("[main] INFO org.apache.catalina.startup.Catalina - Server startup in [") + "\\d+" + Pattern.quote("] milliseconds"));
 			final File binDir = new File(catalinaHome, "bin");
 			final String executableName;
 			if (CommandLineUtil.isWindows()) {
