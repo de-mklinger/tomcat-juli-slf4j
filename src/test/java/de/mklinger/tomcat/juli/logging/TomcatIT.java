@@ -22,9 +22,9 @@ import org.junit.Test;
 
 import de.mklinger.commons.exec.Cmd;
 import de.mklinger.commons.exec.CmdBuilder;
+import de.mklinger.commons.exec.CmdException;
 import de.mklinger.commons.exec.CmdSettings;
-import de.mklinger.commons.exec.CommandLineException;
-import de.mklinger.commons.exec.CommandLineUtil;
+import de.mklinger.commons.exec.CmdUtil;
 import de.mklinger.commons.exec.JavaHome;
 
 /**
@@ -32,7 +32,7 @@ import de.mklinger.commons.exec.JavaHome;
  */
 public class TomcatIT {
 	@Test
-	public void test() throws IOException, CommandLineException {
+	public void test() throws IOException, CmdException {
 		final File catalinaHome = getCatalinaHome();
 		checkCatalinaHome(catalinaHome);
 
@@ -61,7 +61,7 @@ public class TomcatIT {
 			final Pattern p = Pattern.compile(Pattern.quote("[main] INFO org.apache.catalina.startup.Catalina - Server startup in ") + "\\d+" + Pattern.quote(" ms"));
 			final File binDir = new File(catalinaHome, "bin");
 			final String executableName;
-			if (CommandLineUtil.isWindows()) {
+			if (CmdUtil.isWindows()) {
 				executableName = "catalina.bat";
 			} else {
 				executableName = "catalina.sh";
@@ -77,7 +77,7 @@ public class TomcatIT {
 					.ping(() -> {
 						final Matcher m = p.matcher(stderr.toString());
 						if (m.find()) {
-							if (CommandLineUtil.isWindows()) {
+							if (CmdUtil.isWindows()) {
 								stopTomcat(catalinaHome, executable);
 							}
 							throw new TestSuccessException();
@@ -92,8 +92,8 @@ public class TomcatIT {
 			final Cmd cmd = new Cmd(cmdSettings);
 			try {
 				cmd.execute();
-				throw new CommandLineException("Execute returned without matching log");
-			} catch (final CommandLineException e) {
+				throw new CmdException("Execute returned without matching log");
+			} catch (final CmdException e) {
 				final Throwable cause = e.getCause();
 				if (cause == null || !(cause instanceof TestSuccessException)) {
 					System.err.println("Tomcat stderr:\n" + stderr.toString());
@@ -133,7 +133,7 @@ public class TomcatIT {
 			.environment("JAVA_HOME", JavaHome.getByRuntime().getJavaHome().getAbsolutePath())
 			.toCmd()
 			.execute();
-		} catch (final CommandLineException e) {
+		} catch (final CmdException e) {
 			throw new RuntimeException("Stop failed");
 		}
 	}
