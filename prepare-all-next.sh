@@ -15,9 +15,7 @@ DIR="."
 
 FAILED_BRANCHES=""
 
-ALL_BRANCHES=$(git for-each-ref refs/heads --format='%(refname:short)' | cut -f 2 | grep -e '^tomcat-juli-slf4j-.*\.x$' -e '^master$')
-
-##'## fix for mc editor, sorry.
+ALL_BRANCHES=$(git ls-remote --heads origin | cut -f 2 | grep -e '^refs/heads/tomcat-juli-slf4j-.*\.x$' -e '^refs/heads/master$' | cut -d '/' -f 3)
 
 declare -A BRANCH_NEXT_VERSIONS
 
